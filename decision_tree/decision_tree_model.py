@@ -215,6 +215,39 @@ class ClassificationTree(DecisionTree):
         self._leaf_value_calculation = self._majority_vote
         super(ClassificationTree, self).fit(X, y)
 
+class ClassificationRegressionTree(DecisionTree):
+    # Change 1: 建立正确的RegressionTree
+    def __init__(self, n_classes, min_samples_split=2, min_impurity=1e-7,
+                 max_depth=float("inf"), loss=None):
+        self.n_classes = n_classes
+        super(ClassificationRegressionTree, self).__init__(min_samples_split=2,
+                                                           min_impurity=1e-7,
+                                                           max_depth=float("inf"),
+                                                           loss=None)
+
+    def _calculate_variance_reduction(self, y, y1, y2):
+        var_tot = calculate_variance(y)
+        var_1 = calculate_variance(y1)
+        var_2 = calculate_variance(y2)
+        frac_1 = len(y1) / len(y)
+        frac_2 = len(y2) / len(y)
+
+        # Calculate the variance reduction
+        variance_reduction = var_tot - (frac_1 * var_1 + frac_2 * var_2)
+
+        return sum(variance_reduction)
+
+    def _leave_for_multi_class(self, y):
+        K = self.n_classes
+        numerator = np.ones(y.shape[0]).dot(y)
+        denominator = np.abs(y).T.dot(1-np.abs(y))
+        return ((K-1)/K) * (float(numerator)/float(denominator))
+
+    def fit(self, X, y, loss=None):
+        self._impurity_calculation = self._calculate_variance_reduction
+        self._leaf_value_calculation = self._leave_for_multi_class
+        super(ClassificationRegressionTree, self).fit(X, y)
+
 
 class RegressionTree(DecisionTree):
     def _calculate_variance_reduction(self, y, y1, y2):
